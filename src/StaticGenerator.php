@@ -16,7 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Handles generation of static sites.
  */
-final class StaticGenerator {
+final class StaticGenerator
+{
 
   private readonly EntityTypeManagerInterface $entityTypeManager;
   private readonly RendererInterface $renderer;
@@ -32,7 +33,8 @@ final class StaticGenerator {
     $this->fileSystem = $fileSystem;
   }
 
-  public function generateStaticSite(array $node_ids, string $directory_name): void {
+  public function generateStaticSite(array $node_ids, string $directory_name): void
+  {
     $original_session =     \Drupal::request()->getSession();
     $node_storage = $this->entityTypeManager->getStorage('node');
     $nodes = $node_storage->loadMultiple($node_ids);
@@ -65,15 +67,13 @@ final class StaticGenerator {
 
     \Drupal::currentUser()->setAccount($orIGinal_account);
     $request->setSession($original_session);
-
-    
-    
   }
 
-  private function simulateRequest(string $path): Response {
+  private function simulateRequest(string $path): Response
+  {
     // Check for recursive simulation.
     if (\Drupal::request()->getRequestUri() === $path) {
-        throw new \RuntimeException("Recursive request simulation detected for path: {$path}");
+      throw new \RuntimeException("Recursive request simulation detected for path: {$path}");
     }
 
     // Create the request.
@@ -81,8 +81,8 @@ final class StaticGenerator {
 
     // Ensure a session is initialized if needed.
     if (!$request->hasSession()) {
-        $session = new \Symfony\Component\HttpFoundation\Session\Session();
-        $request->setSession($session);
+      $session = new \Symfony\Component\HttpFoundation\Session\Session();
+      $request->setSession($session);
     }
 
     // Handle the request with the HTTP kernel.
@@ -90,9 +90,29 @@ final class StaticGenerator {
     $response = $kernel->handle($request, \Symfony\Component\HttpKernel\HttpKernelInterface::SUB_REQUEST, false);
 
     return $response;
-}
+  }
 
+  private function copyAssets(string $output_directory)
+  {
+    // Define source directories for assets
+    $source_css_directory = DRUPAL_ROOT . '/themes/custom/mytheme/css'; // Adjust path as needed
+    $source_js_directory = DRUPAL_ROOT . '/themes/custom/mytheme/js'; // Adjust path as needed
 
+    // Define target directories
+    $target_css_directory = $this->fileSystem->realpath($output_directory) . '/css';
+    $target_js_directory = $this->fileSystem->realpath($output_directory) . '/js';
 
+    // Ensure target directories exist
+    $this->fileSystem->prepareDirectory($target_css_directory, FileSystemInterface::CREATE_DIRECTORY);
+    $this->fileSystem->prepareDirectory($target_js_directory, FileSystemInterface::CREATE_DIRECTORY);
 
+    // Copy files
+    foreach (['css' => $source_css_directory, 'js' => $source_js_directory] as $type => $source_directory) {
+      foreach (new \DirectoryIterator($source_directory) as $fileinfo) {
+        if (!$fileinfo->isDot() && !$fileinfo->isDir()) {
+          copy($fileinfo->getPathname(), "${'target_' .$type . '_directory'}/" . $fileinfo->getFilename());
+        }
+      }
+    }
+  }
 }

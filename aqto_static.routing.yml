@@ -1,0 +1,7 @@
+aqto_static.generate_static_site:
+  path: '/aqto-static/generate-static-site'
+  defaults:
+    _title: 'Generate Static Site'
+    _form: 'Drupal\aqto_static\Form\GenerateStaticSiteForm'
+  requirements:
+    _permission: 'access aqto static generator'

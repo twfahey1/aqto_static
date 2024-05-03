@@ -1,0 +1,4 @@
+services:
+  aqto_static.static_generator:
+    class: Drupal\aqto_static\StaticGenerator
+    arguments: ['@entity_type.manager', '@renderer', '@file_system']

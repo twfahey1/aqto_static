@@ -1,0 +1,5 @@
+name: 'Aqto Static'
+type: module
+description: 'Provides ability to generate a static site from one or more pages.'
+package: Aqto
+core_version_requirement: ^10 || ^11

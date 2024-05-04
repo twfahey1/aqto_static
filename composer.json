@@ -1,0 +1,16 @@
+{
+    "name": "twfahey1/aqto_static",
+    "type": "drupal-module",
+    "description": "A Drupal module that can export content as static standalone sites.",
+    "keywords": ["Drupal", "module"],
+    "homepage": "https://github.com/twfahey1/aqto_static",
+    "license": "GPL-2.0+",
+    "authors": [
+        {
+            "name": "Tyler Fahey",
+            "email": "twfahey1@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}

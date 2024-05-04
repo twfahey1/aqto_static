@@ -67,6 +67,10 @@ final class StaticGenerator
       }
     }
 
+    // Now lets copyDrupalAssets to ensure
+    // all the assets are available.
+    $this->copyDrupalAssets($output_directory);
+
     // Restore the original request
     \Drupal::requestStack()->pop();
     \Drupal::requestStack()->push($original_request);
@@ -98,26 +102,37 @@ final class StaticGenerator
 
     return $response;
   }
-
-  private function copyAssets(string $output_directory)
+  private function copyDrupalAssets(string $output_directory)
   {
-    // Define source directories for assets
-    $source_css_directory = DRUPAL_ROOT . '/themes/custom/mytheme/css'; // Adjust path as needed
-    $source_js_directory = DRUPAL_ROOT . '/themes/custom/mytheme/js'; // Adjust path as needed
+    // Define the directories where Drupal stores aggregated CSS and JS.
+    $source_css_directory = 'public://css';
+    $source_js_directory = 'public://js';
 
-    // Define target directories
+    // Define target directories in the static output
     $target_css_directory = $this->fileSystem->realpath($output_directory) . '/css';
     $target_js_directory = $this->fileSystem->realpath($output_directory) . '/js';
 
-    // Ensure target directories exist
+    // Ensure the target directories exist or create them
     $this->fileSystem->prepareDirectory($target_css_directory, FileSystemInterface::CREATE_DIRECTORY);
     $this->fileSystem->prepareDirectory($target_js_directory, FileSystemInterface::CREATE_DIRECTORY);
 
-    // Copy files
-    foreach (['css' => $source_css_directory, 'js' => $source_js_directory] as $type => $source_directory) {
-      foreach (new \DirectoryIterator($source_directory) as $fileinfo) {
-        if (!$fileinfo->isDot() && !$fileinfo->isDir()) {
-          copy($fileinfo->getPathname(), "${'target_' .$type . '_directory'}/" . $fileinfo->getFilename());
+    // Copy the files from the source to target directories
+    $this->copyFilesFromDirectory($source_css_directory, $target_css_directory);
+    $this->copyFilesFromDirectory($source_js_directory, $target_js_directory);
+  }
+
+  private function copyFilesFromDirectory($source_directory, $target_directory)
+  {
+    $directory = \Drupal::service('file_system')->realpath($source_directory);
+    $iterator = new \DirectoryIterator($directory);
+    foreach ($iterator as $fileinfo) {
+      if (!$fileinfo->isDot() && !$fileinfo->isDir()) {
+        $source_file = $fileinfo->getPathname();
+        $target_file = $target_directory . '/' . $fileinfo->getFilename();
+
+        // Copy the file if it doesn't exist or if it's newer than the target
+        if (!file_exists($target_file) || filemtime($source_file) > filemtime($target_file)) {
+          copy($source_file, $target_file);
         }
       }
     }
@@ -125,9 +140,15 @@ final class StaticGenerator
 
   private function adjustHtmlContent(string $html_content, string $output_directory)
   {
-    // Example pattern adjustment, needs refinement based on actual HTML output
-    $html_content = str_replace('src="/themes/custom/mytheme/js/', 'src="js/', $html_content);
-    $html_content = str_replace('href="/themes/custom/mytheme/css/', 'href="css/', $html_content);
+    $patterns = [
+      '/"\/sites\/default\/files\/css\/(.*?)"/' => '"css/$1"',
+      '/"\/sites\/default\/files\/js\/(.*?)"/' => '"js/$1"'
+    ];
+
+    foreach ($patterns as $pattern => $replacement) {
+      $html_content = preg_replace($pattern, $replacement, $html_content);
+    }
+
     return $html_content;
   }
 }

@@ -54,9 +54,16 @@ final class StaticGenerator
         $url = $node->toUrl()->setAbsolute()->toString();
         $request->server->set('REQUEST_URI', $url);
         $response = $this->simulateRequest($url);
-
-        $filename = $this->fileSystem->realpath($output_directory) . '/' . $node->id() . '.html';
-        file_put_contents($filename, $response->getContent());
+        $html_content = $response->getContent();
+        $html_content = $this->adjustHtmlContent($html_content, $output_directory);
+        // Check if node is front page node from system config.
+        $front_page_node_id = \Drupal::config('system.site')->get('page.front');
+        if ($node->id() == $front_page_node_id) {
+          $filename = 'index.html';
+        } else {
+          $filename = $node->id() . '.html';
+        }
+        file_put_contents($this->fileSystem->realpath($output_directory) . '/' . $filename, $html_content);
       }
     }
 
@@ -114,5 +121,13 @@ final class StaticGenerator
         }
       }
     }
+  }
+
+  private function adjustHtmlContent(string $html_content, string $output_directory)
+  {
+    // Example pattern adjustment, needs refinement based on actual HTML output
+    $html_content = str_replace('src="/themes/custom/mytheme/js/', 'src="js/', $html_content);
+    $html_content = str_replace('href="/themes/custom/mytheme/css/', 'href="css/', $html_content);
+    return $html_content;
   }
 }
